@@ -9,6 +9,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/public", express.static("public"));
 
 app.use("/api/v1/product", productRouter);
@@ -16,7 +17,7 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/order", orderRouter);
 
 app.use("/", (req, res) => {
-  res.status(404).json({ message: "Route not found"});
+  res.status(404).json({ message: "Route not found" });
 });
 
 const PORT = process.env.PORT || 5000;

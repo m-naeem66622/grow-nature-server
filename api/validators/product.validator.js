@@ -1,14 +1,5 @@
 const Joi = require("joi");
 
-// Product schema
-// const productSchema = Joi.object({
-//   name: Joi.string().required(),
-//   price: Joi.number().required(),
-//   longDesc: Joi.string().required(),
-
-//   categories: Joi.array().items(Joi.string()).required(),
-// });
-
 const productSchema = Joi.object({
   src: Joi.array().items(Joi.string()).min(1).required(),
   name: Joi.string().required(),
@@ -35,13 +26,14 @@ const productIdValidate = Joi.object({
   productId: Joi.string().length(24).hex(),
 });
 
-const productPaginationSchema = Joi.object({
+const getProductsSchema = Joi.object({
   page: Joi.number().integer(),
   limit: Joi.number().integer(),
+  categories: Joi.array().items(Joi.string()),
 });
 
 module.exports = {
   productSchema,
   productIdValidate,
-  productPaginationSchema,
+  getProductsSchema,
 };

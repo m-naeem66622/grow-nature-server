@@ -53,12 +53,17 @@ const getAllProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
+    const categories = req.query.categories || [];
+    const filter = { isDeleted: false };
 
-    console.log("Page:", req.query.page, "Limit:", req.query.limit);
+    if (categories.length > 0) {
+      filter.categories = {
+        $in: categories.map((category) => new RegExp(category, "i")),
+      };
+    }
 
-    const totalProducts = await Product.countDocuments({ isDeleted: false });
-
-    const products = await Product.find({ isDeleted: false })
+    const totalProducts = await Product.countDocuments(filter);
+    const products = await Product.find(filter, { isDeleted: 0, adminId: 0 })
       .skip((page - 1) * limit)
       .limit(limit);
 

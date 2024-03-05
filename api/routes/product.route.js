@@ -2,7 +2,7 @@ const express = require("express");
 const {
   productSchema,
   productIdValidate,
-  productPaginationSchema,
+  getProductsSchema,
 } = require("../validators/product.validator");
 const {
   createProduct,
@@ -23,7 +23,7 @@ const productRouter = express.Router();
 
 productRouter.get(
   "/",
-  validateInput(productPaginationSchema, "QUERY"),
+  validateInput(getProductsSchema, "QUERY"),
   getAllProducts
 );
 
