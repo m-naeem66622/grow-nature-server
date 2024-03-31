@@ -6,7 +6,7 @@ const {
   userVerified,
 } = require("../controllers/user.controller");
 const { validateInput } = require("../middlewares/validateInput.middleware");
-const userValidationSchema = require("../validators/user.validator");
+const Validation = require("../validators/user.validator");
 const { authentication } = require("../middlewares/authentication.middleware");
 const {
   isSeller,
@@ -18,13 +18,20 @@ const userRouter = express.Router();
 
 userRouter.post(
   "/register",
-  validateInput(userValidationSchema, "BODY"),
+  validateInput(Validation.createUserSchema, "BODY"),
+  registerUser
+);
+
+userRouter.post(
+  "/register/caretaker",
+  validateInput(Validation.createCaretakerSchema, "BODY"),
   registerUser
 );
 
 userRouter.post("/verify/admin", authentication, isAdmin, userVerified);
 userRouter.post("/verify/seller", authentication, isSeller, userVerified);
 userRouter.post("/verify/buyer", authentication, isBuyer, userVerified);
+userRouter.post("/verify/caretaker", authentication, isBuyer, userVerified);
 
 userRouter.post("/login", loginUser);
 userRouter.post("/logout", authentication, logoutUser);

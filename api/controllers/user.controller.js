@@ -19,18 +19,11 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = {
-      firstName,
-      lastName,
-      email,
+    const savedUser = await UserModel.saveUser({
+      ...req.body,
       password: hashedPassword,
-      role,
       session,
-    };
-
-    console.log("New User:", newUser); // For debugging
-
-    const savedUser = await UserModel.saveUser(newUser);
+    });
 
     if (savedUser.status === "SUCCESS") {
       const signedToken = await signToken(savedUser.data);

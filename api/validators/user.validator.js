@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 // Define Joi schema for user
-const userValidationSchema = Joi.object({
+const createUserSchema = Joi.object({
   firstName: Joi.string().min(3).required(),
   lastName: Joi.string().min(3).required(),
   email: Joi.string().email().required(),
@@ -10,4 +10,36 @@ const userValidationSchema = Joi.object({
   session: Joi.string().allow(null),
 });
 
-module.exports = userValidationSchema;
+const createCaretakerSchema = Joi.object({
+  firstName: Joi.string().min(3).required(),
+  lastName: Joi.string().min(3).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+  role: Joi.string().valid("CARETAKER"),
+  session: Joi.string().allow(null),
+  bio: Joi.string().required(),
+  experience: Joi.array().items(Joi.string()).min(1).required(),
+  speciality: Joi.string().required(),
+  pricing: Joi.array()
+    .items(
+      Joi.object({
+        service: Joi.string().required(),
+        price: Joi.number().required(),
+      })
+    )
+    .min(1)
+    .required(),
+  services: Joi.array().items(Joi.string()).min(1).required(),
+  availability: Joi.array()
+    .items(
+      Joi.object({
+        day: Joi.string().required(),
+        start: Joi.date().required(),
+        end: Joi.date().required(),
+      })
+    )
+    .min(1)
+    .required(),
+});
+
+module.exports = { createUserSchema, createCaretakerSchema };

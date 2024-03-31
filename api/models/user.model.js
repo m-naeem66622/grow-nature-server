@@ -25,6 +25,7 @@ const saveUser = async (userData) => {
     };
   }
 };
+
 const getUserByEmail = async (email) => {
   try {
     const user = await User.findOne({ email: email }).lean().exec();
@@ -45,6 +46,7 @@ const getUserByEmail = async (email) => {
     };
   }
 };
+
 const setSessionString = async (_id, string = null) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
@@ -71,4 +73,5 @@ const setSessionString = async (_id, string = null) => {
     };
   }
 };
+
 module.exports = { saveUser, getUserByEmail, setSessionString };

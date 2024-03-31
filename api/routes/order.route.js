@@ -19,5 +19,5 @@ orderRouter.put("/:orderId", authentication, isSeller, updateOrderStatus);
 
 orderRouter.get("/:orderId", authentication, getOrderById);
 
-orderRouter.post("/create", authentication, createOrder);
+orderRouter.post("/", authentication, createOrder);
 module.exports = orderRouter;
