@@ -2,12 +2,25 @@ const mongoose = require("mongoose");
 const { ALLOWED_VALID_DAYS } = require("../../config/config");
 const { Schema } = mongoose;
 
+const addressSchema = new mongoose.Schema(
+  {
+    country: { type: String, required: true },
+    state: { type: String, required: true },
+    city: { type: String, required: true },
+    street: { type: String, default: "" },
+    zipCode: { type: String, required: true },
+  },
+  { _id: false, timestamps: true }
+);
+
 const userSchema = new Schema(
   {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    address: { type: addressSchema },
     session: { type: String, default: null },
     role: {
       type: String,
