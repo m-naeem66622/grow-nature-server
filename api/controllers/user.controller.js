@@ -122,6 +122,68 @@ const logoutUser = async (req, res) => {
   }
 };
 
+const getCaretakerProfiles = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+
+    const totalUsers = await UserModel.countDocuments({ role: "CARETAKER" });
+    const users = await UserModel.getUsersByRole("CARETAKER", page, limit);
+
+    if (users.status !== "SUCCESS") {
+      return res.status(422).json({
+        message: "OOPS! Something went wrong",
+        error: users.error,
+      });
+    }
+
+    const pagination = {
+      totalPages: Math.ceil(totalUsers.data / limit),
+      currentPage: page,
+      totalUsers: totalUsers.data,
+      currentUsers: users.data.length,
+      limit,
+    };
+
+    return res.status(200).json({
+      message: "SUCCESS",
+      pagination,
+      data: users.data,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "SORRY: Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+const getCaretakerProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await UserModel.getUserById(id);
+
+    if (user.status !== "SUCCESS") {
+      return res.status(404).json({
+        message: "USER NOT FOUND",
+      });
+    }
+
+    return res.status(200).json({
+      message: "SUCCESS",
+      data: user.data,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "SORRY: Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
 const userVerified = async (req, res) => {
   res.status(200).json({
     message: "SUCCESS",
@@ -129,4 +191,11 @@ const userVerified = async (req, res) => {
   });
 };
 
-module.exports = { registerUser, loginUser, logoutUser, userVerified };
+module.exports = {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCaretakerProfiles,
+  getCaretakerProfile,
+  userVerified,
+};
