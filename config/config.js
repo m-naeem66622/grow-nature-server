@@ -15,7 +15,16 @@ const ALLOWED_VALID_DAYS = [
   "SUNDAY",
 ];
 
+const USER_COMMON_PROJECTION = {
+  firstName: 1,
+  lastName: 1,
+  email: 1,
+  phoneNumber: 1,
+  address: 1,
+};
+
 module.exports = {
   ALLOWED_VALIDATION_SCHEMA_SCOPES,
   ALLOWED_VALID_DAYS,
+  USER_COMMON_PROJECTION,
 };

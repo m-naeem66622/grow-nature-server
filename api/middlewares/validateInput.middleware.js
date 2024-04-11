@@ -18,7 +18,7 @@ const validateInput = (inputSchema, schemaScope) => {
         // this code runs in case incoming request body is empty
 
         // returning the response with an error message
-        return res.status(httpsStatus.BAD_REQUEST).json({
+        return res.status(httpsStatus.StatusCodes.BAD_REQUEST).json({
           hasError: true,
           message: `ERROR: Data Validation Failed.`,
           error: {
@@ -30,6 +30,7 @@ const validateInput = (inputSchema, schemaScope) => {
       // validating the incoming schema
       const validationResult = await inputSchema.validateAsync(req.body, {
         abortEarly: false,
+        context: { role: req.decodedToken?.role },
       });
 
       // forwarding the request to the next handler
@@ -49,10 +50,8 @@ const validateInput = (inputSchema, schemaScope) => {
         errorDescription[`${errorKey}`] = errorMessage;
       });
 
-      console.log(errorDescription);
-
       // returning the response with an error message
-      return res.status(httpsStatus.BAD_REQUEST).json({
+      return res.status(httpsStatus.StatusCodes.BAD_REQUEST).json({
         hasError: true,
         message: `ERROR: Data Validation Failed.`,
         error: errorDescription,
@@ -64,18 +63,6 @@ const validateInput = (inputSchema, schemaScope) => {
   const requestQueryValidator = async (req, res, next) => {
     try {
       // validating incoming request query
-
-      console.log("req.query: ", req.query);
-      if (!Object.keys(req.query).length) {
-        // returning the response with an error message
-        return res.status(httpsStatus.BAD_REQUEST).json({
-          hasError: true,
-          message: `ERROR: Data Validation Failed.`,
-          error: {
-            error: `Incoming request query can't be empty.`,
-          },
-        });
-      }
 
       // validating the incoming schema
       const validationResult = await inputSchema.validateAsync(req.query, {
@@ -92,13 +79,21 @@ const validateInput = (inputSchema, schemaScope) => {
       error.details.map((detail) => {
         let errorKey = detail.context.key;
         let errorMessage = detail.message.replace(/"/g, ``);
+        if (detail.type === "object.oxor") {
+          // Handle oxor error
+          errorKey = detail.context.peers.join("_");
+          errorMessage = `The fields ${detail.context.peers.join(
+            " and "
+          )} cannot be present at the same time.`;
+        } else {
+          // Handle other errors
+          errorKey = detail.context.key;
+        }
         errorDescription[`${errorKey}`] = errorMessage;
       });
 
-      console.log(errorDescription);
-
       // returning the response with an error message
-      return res.status(httpsStatus.BAD_REQUEST).json({
+      return res.status(httpsStatus.StatusCodes.BAD_REQUEST).json({
         hasError: true,
         message: `ERROR: Data Validation Failed.`,
         errors: errorDescription,
@@ -114,7 +109,7 @@ const validateInput = (inputSchema, schemaScope) => {
         // this code runs in case incoming request's path params is empty
 
         // returning the response with an error message
-        return res.status(httpsStatus.BAD_REQUEST).json({
+        return res.status(httpsStatus.StatusCodes.BAD_REQUEST).json({
           hasError: true,
           message: `ERROR: Data Validation Failed.`,
           error: {
@@ -143,10 +138,8 @@ const validateInput = (inputSchema, schemaScope) => {
         });
       }
 
-      console.log(errorDescription);
-
       // returning the response with an error message
-      return res.status(httpsStatus.BAD_REQUEST).json({
+      return res.status(httpsStatus.StatusCodes.BAD_REQUEST).json({
         hasError: true,
         message: `ERROR: Data Validation Failed.`,
         error: errorDescription,
