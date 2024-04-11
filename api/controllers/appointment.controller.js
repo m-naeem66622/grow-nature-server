@@ -245,6 +245,28 @@ const deleteAppointmentById = async (req, res, next) => {
     const { appointmentId } = req.params;
     const customerId = req.decodedToken._id;
 
+    const filter = { _id: appointmentId, isDeleted: false };
+    const appointment = await Appointment.getAppointment(filter);
+
+    if (appointment.status === "FAILED") {
+      throwError(
+        appointment.status,
+        appointment.error.statusCode,
+        appointment.error.message,
+        appointment.error.identifier
+      );
+    }
+
+    // If the appointment is already approved, it cannot be deleted
+    if (appointment.data.status === "APPROVED") {
+      throwError(
+        "FAILED",
+        422,
+        "Appointment is already approved, cannot be deleted",
+        "0x000D082"
+      );
+    }
+
     const options = { new: true, fields: { isDeleted: 1 } };
     const deletedAppointment = await Appointment.deleteAppointment(
       appointmentId,
