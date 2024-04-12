@@ -166,9 +166,7 @@ const deleteAppointment = async (appointmentId, customerId, options) => {
   try {
     const appointment = await Appointment.findOneAndUpdate(
       { _id: appointmentId, customer: customerId, isDeleted: false },
-      {
-        $set: { isDeleted: true },
-      },
+      { $set: { isDeleted: true } },
       { new: true, ...options }
     );
 

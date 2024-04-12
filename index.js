@@ -5,7 +5,8 @@ const connectDB = require("./config/db");
 const productRouter = require("./api/routes/product.route");
 const userRouter = require("./api/routes/user.route");
 const orderRouter = require("./api/routes/order.route");
-const apppointmentRouter = require("./api/routes/appointment.route");
+const appointmentRouter = require("./api/routes/appointment.route");
+const plantSwapRouter = require("./api/routes/plantSwap.route");
 const app = express();
 
 app.use(cors());
@@ -16,7 +17,9 @@ app.use("/api/v1/public", express.static("public"));
 app.use("/api/v1/product", productRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/order", orderRouter);
-app.use("/api/v1/appointment", apppointmentRouter);
+app.use("/api/v1/appointment", appointmentRouter);
+app.use("/api/v1/plant-swap", plantSwapRouter);
+
 const {
   notFound,
   errorHandler,
