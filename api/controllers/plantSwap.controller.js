@@ -296,6 +296,70 @@ const updatePlantSwap = async (req, res, next) => {
 };
 
 /**
+ * @desc    Make a deal with a plant swap
+ * @route   POST /api/plant-swap/:plantSwapId/deal
+ * @access  Private/User
+ */
+const makeDeal = async (req, res, next) => {
+  try {
+    const swapPartner = req.decodedToken._id;
+    const { plantSwapId } = req.params;
+
+    const filter = { _id: plantSwapId, isDeleted: false };
+    const projection = {
+      root: { isDeleted: 0 },
+      user: USER_COMMON_PROJECTION,
+      plants: PLANT_COMMON_PROJECTION,
+    };
+
+    const plantSwap = await PlantSwap.getPlantSwapById(filter, projection);
+
+    if (plantSwap.status === "FAILED") {
+      throwError(
+        plantSwap.status,
+        plantSwap.error.statusCode,
+        plantSwap.error.message,
+        plantSwap.error.identifier
+      );
+    }
+
+    // Check if plant swap is already completed
+    if (plantSwap.data.status === "COMPLETED") {
+      throwError(
+        "FAILED",
+        422,
+        "Cannot make a deal with a completed plant swap",
+        "0x000E83"
+      );
+    }
+
+    const updatedPlantSwap = await PlantSwap.updatePlantSwap(
+      filter,
+      { status: "COMPLETED", swapPartner},
+      {},
+      projection
+    );
+
+    if (updatedPlantSwap.status === "FAILED") {
+      throwError(
+        updatedPlantSwap.status,
+        updatedPlantSwap.error.statusCode,
+        updatedPlantSwap.error.message,
+        updatedPlantSwap.error.identifier
+      );
+    }
+
+    res.status(200).json({
+      status: "SUCCESS",
+      message: "Plant swap deal made successfully",
+      data: updatedPlantSwap.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Delete a plant swap
  * @route   DELETE /api/plant-swap/:plantSwapId
  * @access  Private/User
@@ -359,5 +423,6 @@ module.exports = {
   getSwapPartnerPlantSwaps,
   getPlantSwapById,
   updatePlantSwap,
+  makeDeal,
   deletePlantSwap,
 };

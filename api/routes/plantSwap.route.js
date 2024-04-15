@@ -56,6 +56,15 @@ router.put(
   Controller.updatePlantSwap
 );
 
+// Route for making deal
+router.post(
+  "/:plantSwapId/deal",
+  validateInput(Validation.idSchema, "PARAM"),
+  authentication,
+  Authorize.isBuyer,
+  Controller.makeDeal
+);
+
 // Route for deleting plant swap
 router.delete(
   "/:plantSwapId",
