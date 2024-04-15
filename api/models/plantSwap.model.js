@@ -13,8 +13,6 @@ const createPlantSwap = async (
       ).populate("user", projection.user)
     ).populate("offeredPlants desiredPlants", projection.plants);
 
-    console.log(newPlantSwap);
-
     if (newPlantSwap) {
       return {
         status: "SUCCESS",
@@ -65,12 +63,23 @@ const getPlantSwaps = async (
       .populate("user swapPartner", projection.user)
       .populate("offeredPlants desiredPlants", projection.plants);
 
-    return {
-      status: "SUCCESS",
-      data: plantSwaps,
-    };
+    if (plantSwaps && plantSwaps.length) {
+      return {
+        status: "SUCCESS",
+        data: plantSwaps,
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000E03",
+          message: "No plant swaps found",
+        },
+      };
+    }
   } catch (error) {
-    throwError("FAILED", 422, error.message, "0x000E03");
+    throwError("FAILED", 422, error.message, "0x000E04");
   }
 };
 
@@ -94,13 +103,76 @@ const getPlantSwapById = async (
         status: "FAILED",
         error: {
           statusCode: 404,
-          identifier: "0x000E04",
+          identifier: "0x000E05",
+          message: "Plant swap not found",
+        },
+      };
+    }
+  } catch (error) {
+    throwError("FAILED", 422, error.message, "0x000E06");
+  }
+};
+
+// UpdatePlantSwap
+const updatePlantSwap = async (
+  filter,
+  update,
+  options,
+  projection = { user: {}, plants: {} }
+) => {
+  try {
+    const updatedPlantSwap = await PlantSwap.findOneAndUpdate(filter, update, {
+      new: true,
+      ...options,
+    })
+      .populate("user swapPartner", projection.user)
+      .populate("offeredPlants desiredPlants", projection.plants);
+
+    if (updatedPlantSwap) {
+      return {
+        status: "SUCCESS",
+        data: updatedPlantSwap,
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000E07",
+          message: "Plant swap not found",
+        },
+      };
+    }
+  } catch (error) {
+    throwError("FAILED", 422, error.message, "0x000E08");
+  }
+};
+
+// DeletePlantSwapById
+const deletePlantSwap = async (plantSwapId, userId, options) => {
+  try {
+    const deletedPlantSwap = await PlantSwap.findOneAndUpdate(
+      { _id: plantSwapId, user: userId, isDeleted: false },
+      { $set: { isDeleted: true } },
+      { new: true, ...options }
+    );
+
+    if (deletedPlantSwap.isDeleted) {
+      return {
+        status: "SUCCESS",
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000E09",
           message: "PlantSwap not found",
         },
       };
     }
   } catch (error) {
-    throwError("FAILED", 422, error.message, "0x000E05");
+    throwError("FAILED", 422, error.message, "0x000E0A");
   }
 };
 
@@ -109,4 +181,6 @@ module.exports = {
   countPlantSwaps,
   getPlantSwaps,
   getPlantSwapById,
+  updatePlantSwap,
+  deletePlantSwap,
 };

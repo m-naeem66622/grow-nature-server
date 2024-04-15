@@ -30,6 +30,7 @@ const getProductsSchema = Joi.object({
   page: Joi.number().integer(),
   limit: Joi.number().integer(),
   categories: Joi.array().items(Joi.string()),
+  name: Joi.string().trim(),
 });
 
 module.exports = {

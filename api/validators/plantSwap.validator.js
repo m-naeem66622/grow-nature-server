@@ -21,4 +21,9 @@ const getAllSchema = Joi.object({
   page: Joi.number().min(1),
 });
 
-module.exports = { createSchema, idSchema, getAllSchema };
+const updateSchema = Joi.object({
+  offeredPlants: Joi.array().items(Joi.string().hex().length(24)).min(1),
+  desiredPlants: Joi.array().items(Joi.string().hex().length(24)).min(1),
+});
+
+module.exports = { createSchema, idSchema, getAllSchema, updateSchema };

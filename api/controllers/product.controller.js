@@ -54,12 +54,23 @@ const getAllProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
     const categories = req.query.categories || [];
+    const name = req.query.name || "";
     const filter = { isDeleted: false };
 
     if (categories.length > 0) {
       filter.categories = {
         $in: categories.map((category) => new RegExp(category, "i")),
       };
+    }
+
+    if (name) {
+      const keywords = name.split(" ").filter(Boolean);
+      const searchPattern = keywords
+        .map((keyword) => `(?=.*${keyword})`)
+        .join("");
+      const searchRegex = new RegExp(searchPattern, "ig");
+
+      filter.name = searchRegex;
     }
 
     const totalProducts = await Product.countDocuments(filter);
@@ -116,9 +127,7 @@ const updateProductById = async (req, res) => {
   try {
     const adminId = req.decodedToken._id;
     const { productId } = req.params;
-
-    console.log("Admin ID:", adminId);
-    console.log("Product ID:", productId);
+    
     const existingProduct = await Product.findOne({
       _id: productId,
       isDeleted: false,

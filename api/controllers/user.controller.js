@@ -5,7 +5,7 @@ const { generateSession } = require("../helpers/generateSession");
 
 const registerUser = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { email, password } = req.body;
 
     const userFound = await UserModel.getUserByEmail(email);
 

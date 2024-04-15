@@ -46,4 +46,23 @@ router.get(
   Controller.getPlantSwapById
 );
 
+// Route for updating plant swap
+router.put(
+  "/:plantSwapId",
+  validateInput(Validation.updateSchema, "BODY"),
+  validateInput(Validation.idSchema, "PARAM"),
+  authentication,
+  Authorize.isBuyer,
+  Controller.updatePlantSwap
+);
+
+// Route for deleting plant swap
+router.delete(
+  "/:plantSwapId",
+  validateInput(Validation.idSchema, "PARAM"),
+  authentication,
+  Authorize.isBuyer,
+  Controller.deletePlantSwap
+);
+
 module.exports = router;

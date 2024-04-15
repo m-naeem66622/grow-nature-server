@@ -107,7 +107,7 @@ const getUserPlantSwaps = async (req, res, next) => {
 
     const filter = { user: userId, isDeleted: false };
     const projection = {
-      root: { isDeleted: 0, user: 0 },
+      root: { isDeleted: 0 },
       user: USER_COMMON_PROJECTION,
       plants: PLANT_COMMON_PROJECTION,
     };
@@ -152,13 +152,13 @@ const getUserPlantSwaps = async (req, res, next) => {
  */
 const getSwapPartnerPlantSwaps = async (req, res, next) => {
   try {
-    const swapPartnerId = req.decodedToken._id;
+    const userId = req.decodedToken._id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    const filter = { swapPartner: swapPartnerId, isDeleted: false };
+    const filter = { swapPartner: userId, isDeleted: false };
     const projection = {
-      root: { isDeleted: 0, swapPartner: 0 },
+      root: { isDeleted: 0 },
       user: USER_COMMON_PROJECTION,
       plants: PLANT_COMMON_PROJECTION,
     };
@@ -182,6 +182,13 @@ const getSwapPartnerPlantSwaps = async (req, res, next) => {
 
     res.status(200).json({
       status: "SUCCESS",
+      pagination: {
+        totalPages: Math.ceil(totalPlantSwaps.data / limit),
+        currentPage: page,
+        totalPlantSwaps: totalPlantSwaps.data,
+        currentPlantSwaps: plantSwaps.data.length,
+        limit,
+      },
       data: plantSwaps.data,
     });
   } catch (error) {
@@ -225,10 +232,132 @@ const getPlantSwapById = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update a plant swap
+ * @route   PUT /api/plant-swap/:plantSwapId
+ * @access  Private/User
+ */
+const updatePlantSwap = async (req, res, next) => {
+  try {
+    const userId = req.decodedToken._id;
+    const { plantSwapId } = req.params;
+    const filter = { _id: plantSwapId, user: userId, isDeleted: false };
+    const projection = {
+      root: { isDeleted: 0 },
+      user: USER_COMMON_PROJECTION,
+      plants: PLANT_COMMON_PROJECTION,
+    };
+
+    const plantSwap = await PlantSwap.getPlantSwapById(filter);
+
+    if (plantSwap.status === "FAILED") {
+      throwError(
+        plantSwap.status,
+        plantSwap.error.statusCode,
+        plantSwap.error.message,
+        plantSwap.error.identifier
+      );
+    }
+
+    // Check if plant swap is already completed
+    if (plantSwap.data.status === "COMPLETED") {
+      throwError(
+        "FAILED",
+        422,
+        "Cannot update a completed plant swap",
+        "0x000E81"
+      );
+    }
+
+    const updatedPlantSwap = await PlantSwap.updatePlantSwap(
+      filter,
+      req.body,
+      {},
+      projection
+    );
+
+    if (updatedPlantSwap.status === "FAILED") {
+      throwError(
+        updatedPlantSwap.status,
+        updatedPlantSwap.error.statusCode,
+        updatedPlantSwap.error.message,
+        updatedPlantSwap.error.identifier
+      );
+    }
+
+    res.status(200).json({
+      status: "SUCCESS",
+      message: "Plant swap updated successfully",
+      data: updatedPlantSwap.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a plant swap
+ * @route   DELETE /api/plant-swap/:plantSwapId
+ * @access  Private/User
+ */
+const deletePlantSwap = async (req, res, next) => {
+  try {
+    const userId = req.decodedToken._id;
+    const { plantSwapId } = req.params;
+
+    const plantSwap = await PlantSwap.getPlantSwapById({
+      _id: plantSwapId,
+      user: userId,
+      isDeleted: false,
+    });
+
+    if (plantSwap.status === "FAILED") {
+      throwError(
+        plantSwap.status,
+        plantSwap.error.statusCode,
+        plantSwap.error.message,
+        plantSwap.error.identifier
+      );
+    }
+
+    if (plantSwap.data.status === "COMPLETED") {
+      throwError(
+        "FAILED",
+        422,
+        "Cannot delete a completed plant swap",
+        "0x000E82"
+      );
+    }
+
+    const deletedPlantSwap = await PlantSwap.deletePlantSwap(
+      plantSwapId,
+      userId
+    );
+
+    if (deletedPlantSwap.status === "FAILED") {
+      throwError(
+        deletedPlantSwap.status,
+        deletedPlantSwap.error.statusCode,
+        deletedPlantSwap.error.message,
+        deletedPlantSwap.error.identifier
+      );
+    }
+
+    res.status(200).json({
+      status: "SUCCESS",
+      message: "Plant swap deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPlantSwap,
   getPlantSwaps,
   getUserPlantSwaps,
   getSwapPartnerPlantSwaps,
   getPlantSwapById,
+  updatePlantSwap,
+  deletePlantSwap,
 };
