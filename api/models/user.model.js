@@ -1,3 +1,4 @@
+const { throwError } = require("../helpers/error");
 const User = require("../schema/user.schema");
 
 const saveUser = async (userData) => {
@@ -37,6 +38,56 @@ const countDocuments = async (filter) => {
     };
   }
 };
+
+const getUsers = async (filter, projection, page, limit) => {
+  try {
+    const users = await User.find(filter, projection)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    if (users && users.length) {
+      return {
+        status: "SUCCESS",
+        data: users,
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000A03",
+          message: "No users found",
+        },
+      };
+    }
+  } catch (error) {
+    throwError("FAILED", 422, error.message, "0x000A04");
+  }
+};
+
+const getUser = async (filter, projection) => {
+  try {
+    const user = await User.findOne(filter, projection);
+
+    if (user) {
+      return {
+        status: "SUCCESS",
+        data: user,
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000A05",
+          message: "User not found",
+        },
+      };
+    }
+  } catch (error) {
+    throwError("FAILED", 422, error.message, "0x000A06");
+  }
+}
 
 const getUsersByRole = async (role, page, limit) => {
   try {
@@ -79,9 +130,10 @@ const getUserByEmail = async (email) => {
   }
 };
 
-const getUserById = async (_id) => {
+const getUserById = async (filter, projection) => {
   try {
-    const user = await User.findOne({ _id, isDeleted: false }).lean().exec();
+    const user = await User.findOne(filter, projection).lean().exec();
+    
     if (user) {
       return {
         status: "SUCCESS",
@@ -98,7 +150,7 @@ const getUserById = async (_id) => {
       error: error.message,
     };
   }
-}
+};
 
 const setSessionString = async (_id, string = null) => {
   try {
@@ -127,11 +179,41 @@ const setSessionString = async (_id, string = null) => {
   }
 };
 
+const updateUser = async (filter, update, options) => {
+  try {
+    const user = await User.findOneAndUpdate(filter, update, {
+      new: true,
+      ...options,
+    });
+
+    if (user) {
+      return {
+        status: "SUCCESS",
+        data: user,
+      };
+    } else {
+      return {
+        status: "FAILED",
+        error: {
+          statusCode: 404,
+          identifier: "0x000D0E",
+          message: "User not found",
+        },
+      };
+    }
+  } catch (error) {
+    throwError("FAILED", 422, error.message, "0x000D0F");
+  }
+};
+
 module.exports = {
   saveUser,
   countDocuments,
+  getUsers,
+  getUser,
   getUsersByRole,
   getUserByEmail,
   getUserById,
   setSessionString,
+  updateUser,
 };

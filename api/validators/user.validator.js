@@ -58,4 +58,19 @@ const createCaretakerSchema = Joi.object({
     .required(),
 });
 
-module.exports = { createUserSchema, createCaretakerSchema };
+const getAllSchema = Joi.object({
+  role: Joi.string().uppercase().valid("BUYER", "CARETAKER"),
+  limit: Joi.number().min(1),
+  page: Joi.number().min(1),
+});
+
+const updateSchema = Joi.object({
+  isBlocked: Joi.boolean(),
+});
+
+module.exports = {
+  createUserSchema,
+  createCaretakerSchema,
+  getAllSchema,
+  updateSchema,
+};

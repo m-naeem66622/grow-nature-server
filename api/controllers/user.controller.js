@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const UserModel = require("../models/user.model");
 const { signToken } = require("../helpers/signToken");
 const { generateSession } = require("../helpers/generateSession");
+const { throwError } = require("../helpers/error");
 
 const registerUser = async (req, res) => {
   try {
@@ -61,33 +62,39 @@ const loginUser = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, userFound.data?.password);
 
-    if (isMatch) {
-      // Generate a new session string
-      const sessionString = generateSession();
-
-      // Update the session in the database
-      const updatedUser = await UserModel.setSessionString(
-        userFound.data._id,
-        sessionString
-      );
-
-      if (updatedUser.status === "SUCCESS") {
-        // Sign a JWT token with user's information
-        const signedToken = await signToken(updatedUser.data);
-        return res.status(200).json({
-          message: "SUCCESS",
-          data: updatedUser.data,
-          token: signedToken,
-        });
-      } else {
-        return res.status(500).json({
-          message: "OOPS! Something went wrong",
-          error: updatedUser.error,
-        });
-      }
-    } else {
+    if (!isMatch) {
       return res.status(404).json({
         message: "INVALID USER",
+      });
+    }
+
+    if (userFound.data.isBlocked) {
+      return res.status(403).json({
+        message: "USER BLOCKED",
+      });
+    }
+    
+    // Generate a new session string
+    const sessionString = generateSession();
+
+    // Update the session in the database
+    const updatedUser = await UserModel.setSessionString(
+      userFound.data._id,
+      sessionString
+    );
+
+    if (updatedUser.status === "SUCCESS") {
+      // Sign a JWT token with user's information
+      const signedToken = await signToken(updatedUser.data);
+      return res.status(200).json({
+        message: "SUCCESS",
+        data: updatedUser.data,
+        token: signedToken,
+      });
+    } else {
+      return res.status(500).json({
+        message: "OOPS! Something went wrong",
+        error: updatedUser.error,
       });
     }
   } catch (error) {
@@ -119,6 +126,72 @@ const logoutUser = async (req, res) => {
     return res.status(500).json({
       message: "SORRY: Something went wrong",
     });
+  }
+};
+
+const getUserProfiles = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 8, role = "" } = req.query;
+
+    const filter = { isDeleted: false };
+    const projection = { isDeleted: 0, password: 0, session: 0 };
+
+    if (role) filter.role = role.toUpperCase();
+
+    const totalUsers = await UserModel.countDocuments(filter);
+    const users = await UserModel.getUsers(filter, projection, page, limit);
+
+    if (users.status !== "SUCCESS") {
+      throwError(
+        users.status,
+        users.error.statusCode,
+        users.error.message,
+        users.error.identifier
+      );
+    }
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      pagination: {
+        totalPages: Math.ceil(totalUsers.data / limit),
+        currentPage: page,
+        totalUsers: totalUsers.data,
+        currentUsers: users.data.length,
+        limit,
+      },
+      data: users.data,
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+const getUserProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const filter = { _id: id, isDeleted: false };
+    const projection = { isDeleted: 0, password: 0, session: 0 };
+
+    const user = await UserModel.getUserById(filter, projection);
+
+    if (user.status !== "SUCCESS") {
+      throwError(
+        user.status,
+        user.error.statusCode,
+        user.error.message,
+        user.error.identifier
+      );
+    }
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      data: user.data,
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 };
 
@@ -163,7 +236,10 @@ const getCaretakerProfile = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await UserModel.getUserById(id);
+    const filter = { _id: id, role: "CARETAKER" };
+    const projection = { password: 0, session: 0, isDeleted: 0 };
+
+    const user = await UserModel.getUserById(filter, projection);
 
     if (user.status !== "SUCCESS") {
       return res.status(404).json({
@@ -191,11 +267,42 @@ const userVerified = async (req, res) => {
   });
 };
 
+const updateProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const filter = { _id: id, isDeleted: false };
+    const options = { fields: { isDeleted: 0, password: 0, session: 0 } };
+
+    const updatedUser = await UserModel.updateUser(filter, req.body, options);
+
+    if (updatedUser.status !== "SUCCESS") {
+      throwError(
+        updatedUser.status,
+        updatedUser.error.statusCode,
+        updatedUser.error.message,
+        updatedUser.error.identifier
+      );
+    }
+
+    return res.status(200).json({
+      message: "SUCCESS",
+      data: updatedUser.data,
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
+  getUserProfiles,
+  getUserProfile,
   getCaretakerProfiles,
   getCaretakerProfile,
   userVerified,
+  updateProfile,
 };

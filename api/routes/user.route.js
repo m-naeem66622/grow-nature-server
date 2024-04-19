@@ -1,12 +1,5 @@
 const express = require("express");
-const {
-  registerUser,
-  loginUser,
-  logoutUser,
-  userVerified,
-  getCaretakerProfiles,
-  getCaretakerProfile,
-} = require("../controllers/user.controller");
+const Controller = require("../controllers/user.controller");
 const { validateInput } = require("../middlewares/validateInput.middleware");
 const Validation = require("../validators/user.validator");
 const { authentication } = require("../middlewares/authentication.middleware");
@@ -22,24 +15,64 @@ const userRouter = express.Router();
 userRouter.post(
   "/register",
   validateInput(Validation.createUserSchema, "BODY"),
-  registerUser
+  Controller.registerUser
 );
 
 userRouter.post(
   "/register/caretaker",
   validateInput(Validation.createCaretakerSchema, "BODY"),
-  registerUser
+  Controller.registerUser
 );
 
-userRouter.get("/profile/caretaker/:id", getCaretakerProfile);
-userRouter.get("/profiles/caretaker", getCaretakerProfiles);
+userRouter.get(
+  "/profiles",
+  validateInput(Validation.getAllSchema, "QUERY"),
+  authentication,
+  isAdmin,
+  Controller.getUserProfiles
+);
+userRouter.get(
+  "/profile/:id",
+  authentication,
+  isAdmin,
+  Controller.getUserProfile
+);
+userRouter.patch(
+  "/profile/:id",
+  authentication,
+  validateInput(Validation.updateSchema, "BODY"),
+  Controller.updateProfile
+);
 
-userRouter.post("/verify/admin", authentication, isAdmin, userVerified);
-userRouter.post("/verify/seller", authentication, isSeller, userVerified);
-userRouter.post("/verify/buyer", authentication, isBuyer, userVerified);
-userRouter.post("/verify/caretaker", authentication, isCaretaker, userVerified);
+userRouter.get("/profile/caretaker/:id", Controller.getCaretakerProfile);
+userRouter.get("/profiles/caretaker", Controller.getCaretakerProfiles);
 
-userRouter.post("/login", loginUser);
-userRouter.post("/logout", authentication, logoutUser);
+userRouter.post(
+  "/verify/admin",
+  authentication,
+  isAdmin,
+  Controller.userVerified
+);
+userRouter.post(
+  "/verify/seller",
+  authentication,
+  isSeller,
+  Controller.userVerified
+);
+userRouter.post(
+  "/verify/buyer",
+  authentication,
+  isBuyer,
+  Controller.userVerified
+);
+userRouter.post(
+  "/verify/caretaker",
+  authentication,
+  isCaretaker,
+  Controller.userVerified
+);
+
+userRouter.post("/login", Controller.loginUser);
+userRouter.post("/logout", authentication, Controller.logoutUser);
 
 module.exports = userRouter;

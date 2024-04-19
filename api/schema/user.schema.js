@@ -39,6 +39,7 @@ const userSchema = new Schema(
       type: [{ day: String, start: Number, end: Number }],
       default: null,
     },
+    isBlocked: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
   },
   {

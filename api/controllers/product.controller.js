@@ -125,13 +125,11 @@ const getProductById = async (req, res) => {
 
 const updateProductById = async (req, res) => {
   try {
-    const adminId = req.decodedToken._id;
     const { productId } = req.params;
-    
+
     const existingProduct = await Product.findOne({
       _id: productId,
       isDeleted: false,
-      adminId,
     });
 
     if (!existingProduct) {
@@ -168,11 +166,9 @@ const updateProductById = async (req, res) => {
 const deleteProductById = async (req, res) => {
   try {
     const { productId } = req.params;
-    const adminId = req.decodedToken._id;
     const existingProduct = await Product.findOne({
       _id: productId,
       isDeleted: false,
-      adminId,
     });
 
     if (!existingProduct) {
