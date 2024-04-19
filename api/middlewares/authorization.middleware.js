@@ -48,10 +48,21 @@ const isCaretakerOrBuyer = (req, res, next) => {
   }
 };
 
+const isAdminOrBuyer = (req, res, next) => {
+  const { role } = req.decodedToken;
+
+  if (role === "ADMIN" || role === "BUYER") {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied" });
+  }
+};
+
 module.exports = {
   isAdmin,
   isSeller,
   isBuyer,
   isCaretaker,
   isCaretakerOrBuyer,
+  isAdminOrBuyer,
 };

@@ -19,12 +19,14 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, required: true, default: 0.0 },
     status: {
       type: String,
-      enum: ["PENDING", "SHIPPED", "DELIVERED"],
+      enum: ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
       uppercase: true,
       default: "PENDING",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: { createdAt: "placedAt" },
+  }
 );
 
 const Order = mongoose.model("Order", orderSchema);

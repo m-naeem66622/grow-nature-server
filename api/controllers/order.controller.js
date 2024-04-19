@@ -1,10 +1,12 @@
-const Order = require("../schema/order.schema");
+const Order = require("../models/order.model");
+const { throwError } = require("../helpers/error");
+const OrderSchema = require("../schema/order.schema");
 
 const createOrder = async (req, res) => {
   try {
     const buyer = req.decodedToken._id;
 
-    const newOrder = new Order({ ...req.body, buyer });
+    const newOrder = new OrderSchema({ ...req.body, buyer });
 
     const savedOrder = await newOrder.save();
     res.status(201).json({
@@ -17,93 +19,116 @@ const createOrder = async (req, res) => {
   }
 };
 
-const adminOrder = async (req, res) => {
+/**
+ * @desc    Get all orders
+ * @route   GET /api/orders
+ * @access  Private User/Admin
+ */
+const getOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find().populate([{ path: "products" }]);
-    res.status(200).json(orders);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const filter = {};
+    if (req.decodedToken.role === "BUYER") filter.buyer = req.decodedToken._id;
+    if (req.query.orderStatus) filter.orderStatus = req.query.orderStatus;
+
+    let projection = { isDeleted: 0 };
+
+    const totalOrders = await Order.count(filter);
+    console.log("Filter", filter, "Total Orders", totalOrders.data);
+    const orders = await Order.get(filter, projection, page, limit);
+
+    if (orders.status === "FAILED") {
+      throwError(
+        orders.status,
+        orders.error.statusCode,
+        orders.error.message,
+        orders.error.identifier
+      );
+    }
+
+    const pagination = {
+      totalPages: Math.ceil(totalOrders.data / limit),
+      currentPage: page,
+      totalOrders: totalOrders.data,
+      currentOrders: orders.data.length,
+      limit,
+    };
+
+    res.json({
+      status: "SUCCESS",
+      pagination,
+      data: orders.data,
+    });
   } catch (error) {
-    console.error("Error fetching orders related to seller:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    next(error);
   }
 };
 
-const getOrdersByBuyer = async (req, res) => {
+/**
+ * @desc    Get single order
+ * @route   GET /api/orders/:id
+ * @access  Private User/Admin
+ */
+const getSingleOrder = async (req, res, next) => {
   try {
-    const buyerId = req.decodedToken._id;
+    const orderId = req.params.id;
+    const filter = { _id: orderId };
+    if (req.decodedToken.role === "BUYER") filter.buyer = req.decodedToken._id;
 
-    const orders = await Order.find({ buyer: buyerId }).populate([
-      { path: "products" },
-    ]);
+    let projection = { isDeleted: 0 };
 
-    res.status(200).json(orders);
+    const order = await Order.getSingle(filter, projection);
+
+    if (order.status === "FAILED") {
+      throwError(
+        order.status,
+        order.error.statusCode,
+        order.error.message,
+        order.error.identifier
+      );
+    }
+
+    res.json({
+      status: "SUCCESS",
+      data: order.data,
+    });
   } catch (error) {
-    console.error("Error fetching orders placed by buyer:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    next(error);
   }
 };
 
-const updateOrderStatus = async (req, res) => {
+/**
+ * @desc    Update order status
+ * @route   PUT /api/orders/:id
+ * @access  Private User/Admin
+ */
+const updateOrder = async (req, res, next) => {
   try {
-    const { orderId } = req.params;
-    const { status } = req.body;
+    const orderId = req.params.id;
+    const filter = { _id: orderId };
+    if (req.decodedToken.role === "BUYER") filter.buyer = req.decodedToken._id;
 
-    if (!orderId || !status) {
-      return res
-        .status(400)
-        .json({ message: "Order ID and status are required fields" });
+    const order = await Order.update(filter, req.body);
+
+    if (order.status === "FAILED") {
+      throwError(
+        order.status,
+        order.error.statusCode,
+        order.error.message,
+        order.error.identifier
+      );
     }
 
-    const validStatuses = ["shipped", "delivered"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: "Invalid status provided" });
-    }
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      { _id: orderId },
-      { $set: { status: status } },
-      { new: true }
-    );
-
-    if (!updatedOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    res.status(200).json({
+    res.json({
+      status: "SUCCESS",
       message: "Order status updated successfully",
-      order: updatedOrder,
+      data: order.data,
     });
   } catch (error) {
-    console.error("Error updating order status:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    next(error);
   }
 };
 
-const getOrderById = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    if (!orderId) {
-      return res.status(400).json({ message: "Order ID is required" });
-    }
-    const order = await Order.findById(orderId).populate({ path: "products" });
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    res.status(200).json(order);
-  } catch (error) {
-    console.error("Error while fetching order by ID:", error);
-    res.status(500).json({
-      message: "OOPS! Sorry, something went wrong.",
-      error: error.message,
-    });
-  }
-};
-
-module.exports = {
-  createOrder,
-  adminOrder,
-  getOrdersByBuyer,
-  updateOrderStatus,
-  getOrderById,
-};
+module.exports = { createOrder, getOrders, getSingleOrder, updateOrder };
