@@ -1,5 +1,22 @@
 const mongoose = require("mongoose");
 
+const reviewSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    order: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+    },
+    rating: { type: Number, required: true },
+    comment: { type: String, trim: true, required: true },
+    isDeleted: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const productSchema = new mongoose.Schema({
   src: { type: [String], required: true },
   name: { type: String, required: true },
@@ -22,6 +39,7 @@ const productSchema = new mongoose.Schema({
   potType: { type: String, default: null },
   shortDesc: { type: String, required: true },
   longDesc: { type: String, required: true },
+  reviews: { type: [reviewSchema], default: [] },
   isDeleted: { type: Boolean, default: false },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,

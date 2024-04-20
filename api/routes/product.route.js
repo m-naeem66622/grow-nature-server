@@ -1,50 +1,36 @@
 const express = require("express");
-const {
-  productSchema,
-  productIdValidate,
-  getProductsSchema,
-} = require("../validators/product.validator");
-const {
-  createProduct,
-  getProductById,
-  getAllProducts,
-  updateProductById,
-  deleteProductById,
-  createPhoto,
-} = require("../controllers/product.controller");
+const Validation = require("../validators/product.validator");
+const Controller = require("../controllers/product.controller");
 const { validateInput } = require("../middlewares/validateInput.middleware");
 const { authentication } = require("../middlewares/authentication.middleware");
-const {
-  isSeller,
-  isAdmin,
-} = require("../middlewares/authorization.middleware");
+const { isBuyer, isAdmin } = require("../middlewares/authorization.middleware");
 const uploadProductImage = require("../middlewares/image.middleware");
 const productRouter = express.Router();
 
 productRouter.get(
   "/",
-  validateInput(getProductsSchema, "QUERY"),
-  getAllProducts
+  validateInput(Validation.getProductsSchema, "QUERY"),
+  Controller.getAllProducts
 );
 
-productRouter.get("/:productId", getProductById);
+productRouter.get("/:productId", Controller.getProductById);
 
 productRouter.put(
   "/:productId",
   authentication,
   isAdmin,
   uploadProductImage,
-  validateInput(productIdValidate, "PARAMS"),
-  validateInput(productSchema, "BODY"),
-  updateProductById
+  validateInput(Validation.productIdValidate, "PARAMS"),
+  validateInput(Validation.productSchema, "BODY"),
+  Controller.updateProductById
 );
 
 productRouter.delete(
   "/:productId",
   authentication,
   isAdmin,
-  validateInput(productIdValidate, "PARAMS"),
-  deleteProductById
+  validateInput(Validation.productIdValidate, "PARAMS"),
+  Controller.deleteProductById
 );
 
 productRouter.post(
@@ -52,9 +38,34 @@ productRouter.post(
   authentication,
   isAdmin,
   uploadProductImage,
-  validateInput(productSchema, "BODY"),
-  createProduct
+  validateInput(Validation.productSchema, "BODY"),
+  Controller.createProduct
 );
 
-productRouter.post("/photo", createPhoto);
+productRouter.post(
+  "/:productId/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.productIdValidate, "PARAMS"),
+  validateInput(Validation.reviewSchema, "BODY"),
+  Controller.createReview
+);
+
+productRouter.patch(
+  "/:productId/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.productIdValidate, "PARAMS"),
+  validateInput(Validation.updateReviewSchema, "BODY"),
+  Controller.updateReview
+);
+
+productRouter.delete(
+  "/:productId/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.productIdValidate, "PARAMS"),
+  Controller.deleteReview
+);
+
 module.exports = productRouter;

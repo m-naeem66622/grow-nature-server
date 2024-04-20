@@ -7,10 +7,6 @@ const createProduct = async (req, res) => {
   try {
     const adminId = req.decodedToken._id;
 
-    // console.log("req.files:", req.files);
-    // const src = req.files.map((file) => file.path);
-    // console.log("src:", src);
-
     const adminFound = await User.findById({ _id: adminId });
     if (!adminFound) {
       return res.status(404).json({
@@ -25,23 +21,6 @@ const createProduct = async (req, res) => {
       .status(201)
       .json({ message: "Product created successfully.", data: newProduct });
   } catch (error) {
-    console.error("Error while creating product:", error);
-    res.status(500).json({
-      message: "OOPS! Sorry, something went wrong.",
-      error: error.message,
-    });
-  }
-};
-
-const createPhoto = async (req, res) => {
-  try {
-    let { image } = req.body;
-    image = req.fullFilePath;
-    res
-      .status(201)
-      .json({ message: "Product created successfully.", data: image });
-  } catch (error) {
-    console.error("Error while creating product:", error);
     res.status(500).json({
       message: "OOPS! Sorry, something went wrong.",
       error: error.message,
@@ -91,7 +70,6 @@ const getAllProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Error while fetching products:", error);
     res.status(500).json({
       message: "OOPS! Sorry, something went wrong.",
       error: error.message,
@@ -107,7 +85,10 @@ const getProductById = async (req, res) => {
       return res.status(400).json({ message: "Product ID is required" });
     }
 
-    const product = await Product.findOne({ _id: productId, isDeleted: false });
+    const product = await Product.findOne({
+      _id: productId,
+      isDeleted: false,
+    }).populate("reviews.user", "firstName lastName email");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -115,7 +96,6 @@ const getProductById = async (req, res) => {
 
     res.status(200).json(product);
   } catch (error) {
-    console.error("Error while fetching product by ID:", error);
     res.status(500).json({
       message: "OOPS! Sorry, something went wrong.",
       error: error.message,
@@ -155,7 +135,6 @@ const updateProductById = async (req, res) => {
       product: updatedProduct,
     });
   } catch (error) {
-    console.error("Error while updating product:", error);
     res.status(500).json({
       message: "OOPS! Sorry, something went wrong.",
       error: error.message,
@@ -191,7 +170,171 @@ const deleteProductById = async (req, res) => {
 
     return res.status(200).json({ message: "Product deleted successfully." });
   } catch (error) {
-    console.error("Error while deleting product:", error);
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const createReview = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { order, rating, comment } = req.body;
+    const userId = req.decodedToken._id;
+
+    const product = await Product.findOne({ _id: productId, isDeleted: false });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Check if the user has already reviewed this product
+    const existingReview = product.reviews.find(
+      (review) =>
+        review.user.toString() === userId &&
+        !review.isDeleted &&
+        review.order.toString() === order
+    );
+
+    if (existingReview) {
+      return res
+        .status(422)
+        .json({ message: "You have already reviewed this product." });
+    }
+
+    const review = {
+      user: userId,
+      order,
+      rating,
+      comment,
+    };
+
+    product.reviews.push(review);
+    await product.save();
+
+    res.status(201).json({
+      message: "Review added successfully.",
+      data: product.reviews[product.reviews.length - 1],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const getReviews = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const userId = req.decodedToken._id;
+
+    const totalReviews = await Product.countDocuments({
+      "reviews.user": userId,
+    });
+    const reviews = await Product.find(
+      { "reviews.user": userId },
+      { reviews: { $elemMatch: { user: userId, isDeleted: false } } }
+    )
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const pagination = {
+      totalPages: Math.ceil(totalReviews / limit),
+      currentPage: page,
+      totalReviews,
+      currentReviews: reviews.length,
+      limit,
+    };
+
+    res.status(200).json({
+      pagination,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const updateReview = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { order, rating, comment } = req.body;
+    const userId = req.decodedToken._id;
+
+    const product = await Product.findOne({ _id: productId, isDeleted: false });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Find the review in the product's reviews array
+    const reviewIndex = product.reviews.findIndex(
+      (review) =>
+        review.user.toString() === userId &&
+        !review.isDeleted &&
+        review.order.toString() === order
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: "Review not found." });
+    }
+
+    // Update the review
+    product.reviews[reviewIndex].rating = rating;
+    product.reviews[reviewIndex].comment = comment;
+
+    await product.save();
+
+    res.status(200).json({
+      message: "Review updated successfully.",
+      data: product.reviews[reviewIndex],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const deleteReview = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.decodedToken._id;
+
+    const product = await Product.findOne({ _id: productId, isDeleted: false });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Find the review in the product's reviews array
+    const reviewIndex = product.reviews.findIndex(
+      (review) =>
+        review.user.toString() === userId &&
+        !review.isDeleted &&
+        review.order.toString() === req.body.order
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: "Review not found." });
+    }
+
+    // Remove the review
+    product.reviews.splice(reviewIndex, 1);
+
+    await product.save();
+
+    res.status(200).json({
+      message: "Review deleted successfully.",
+    });
+  } catch (error) {
     res.status(500).json({
       message: "OOPS! Sorry, something went wrong.",
       error: error.message,
@@ -205,5 +348,8 @@ module.exports = {
   updateProductById,
   deleteProductById,
   getProductById,
-  createPhoto,
+  createReview,
+  getReviews,
+  updateReview,
+  deleteReview,
 };

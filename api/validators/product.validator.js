@@ -21,6 +21,18 @@ const productSchema = Joi.object({
   longDesc: Joi.string().required(),
 });
 
+const reviewSchema = Joi.object({
+  order: Joi.string().length(24).hex().required(),
+  rating: Joi.number().integer().min(1).max(5).required(),
+  comment: Joi.string().trim().required(),
+});
+
+const updateReviewSchema = Joi.object({
+  order: Joi.string().length(24).hex(),
+  rating: Joi.number().integer().min(1).max(5),
+  comment: Joi.string().trim(),
+});
+
 // Params validation for productId
 const productIdValidate = Joi.object({
   productId: Joi.string().length(24).hex(),
@@ -33,8 +45,16 @@ const getProductsSchema = Joi.object({
   name: Joi.string().trim(),
 });
 
+const getReviewsSchema = Joi.object({
+  page: Joi.number().integer(),
+  limit: Joi.number().integer(),
+});
+
 module.exports = {
   productSchema,
   productIdValidate,
   getProductsSchema,
+  reviewSchema,
+  updateReviewSchema,
+  getReviewsSchema,
 };
