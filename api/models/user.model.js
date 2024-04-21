@@ -87,7 +87,7 @@ const getUser = async (filter, projection) => {
   } catch (error) {
     throwError("FAILED", 422, error.message, "0x000A06");
   }
-}
+};
 
 const getUsersByRole = async (role, page, limit) => {
   try {
@@ -132,8 +132,11 @@ const getUserByEmail = async (email) => {
 
 const getUserById = async (filter, projection) => {
   try {
-    const user = await User.findOne(filter, projection).lean().exec();
-    
+    const user = await User.findOne(filter, projection)
+      .populate("reviews.user", "firstName lastName email")
+      .lean()
+      .exec();
+
     if (user) {
       return {
         status: "SUCCESS",

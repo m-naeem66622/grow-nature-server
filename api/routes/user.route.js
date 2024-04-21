@@ -26,7 +26,7 @@ userRouter.post(
 
 userRouter.get(
   "/profiles",
-  validateInput(Validation.getAllSchema, "QUERY"),
+  validateInput(Validation.getUsersSchema, "QUERY"),
   authentication,
   isAdmin,
   Controller.getUserProfiles
@@ -40,7 +40,7 @@ userRouter.get(
 userRouter.patch(
   "/profile/:id",
   authentication,
-  validateInput(Validation.updateSchema, "BODY"),
+  validateInput(Validation.updateUserSchema, "BODY"),
   Controller.updateProfile
 );
 
@@ -74,5 +74,29 @@ userRouter.post(
 
 userRouter.post("/login", Controller.loginUser);
 userRouter.post("/logout", authentication, Controller.logoutUser);
+
+userRouter.post(
+  "/:id/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.idSchema, "PARAMS"),
+  validateInput(Validation.createReviewSchema, "BODY"),
+  Controller.createReview
+);
+userRouter.patch(
+  "/:id/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.idSchema, "PARAMS"),
+  validateInput(Validation.updateReviewSchema, "BODY"),
+  Controller.updateReview
+);
+userRouter.delete(
+  "/:id/review",
+  authentication,
+  isBuyer,
+  validateInput(Validation.idSchema, "PARAMS"),
+  Controller.deleteReview
+);
 
 module.exports = userRouter;

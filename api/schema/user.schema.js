@@ -13,6 +13,18 @@ const addressSchema = new mongoose.Schema(
   { _id: false, timestamps: true }
 );
 
+const reviewSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    rating: { type: Number, required: true },
+    comment: { type: String, trim: true, required: true },
+    isDeleted: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const userSchema = new Schema(
   {
     firstName: { type: String, required: true },
@@ -30,6 +42,7 @@ const userSchema = new Schema(
       enum: ["ADMIN", "BUYER", "SELLER", "CARETAKER"],
     },
     // Caretaker specific fields
+    reviews: { type: [reviewSchema], default: [] },
     bio: { type: String },
     experience: { type: [String], default: null },
     speciality: { type: String, default: null },

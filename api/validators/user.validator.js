@@ -58,19 +58,42 @@ const createCaretakerSchema = Joi.object({
     .required(),
 });
 
-const getAllSchema = Joi.object({
+const getUsersSchema = Joi.object({
   role: Joi.string().uppercase().valid("BUYER", "CARETAKER"),
   limit: Joi.number().min(1),
   page: Joi.number().min(1),
 });
 
-const updateSchema = Joi.object({
+const updateUserSchema = Joi.object({
   isBlocked: Joi.boolean(),
+});
+
+const createReviewSchema = Joi.object({
+  rating: Joi.number().integer().min(1).max(5).required(),
+  comment: Joi.string().trim().required(),
+});
+
+const updateReviewSchema = Joi.object({
+  rating: Joi.number().integer().min(1).max(5),
+  comment: Joi.string().trim(),
+});
+
+const idSchema = Joi.object({
+  id: Joi.string().length(24).hex(),
+});
+
+const getReviewsSchema = Joi.object({
+  page: Joi.number().integer(),
+  limit: Joi.number().integer(),
 });
 
 module.exports = {
   createUserSchema,
   createCaretakerSchema,
-  getAllSchema,
-  updateSchema,
+  getUsersSchema,
+  updateUserSchema,
+  createReviewSchema,
+  updateReviewSchema,
+  idSchema,
+  getReviewsSchema,
 };

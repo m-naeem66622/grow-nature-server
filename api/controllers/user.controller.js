@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const UserModel = require("../models/user.model");
+const UserSchema = require("../schema/user.schema");
 const { signToken } = require("../helpers/signToken");
 const { generateSession } = require("../helpers/generateSession");
 const { throwError } = require("../helpers/error");
@@ -73,7 +74,7 @@ const loginUser = async (req, res) => {
         message: "USER BLOCKED",
       });
     }
-    
+
     // Generate a new session string
     const sessionString = generateSession();
 
@@ -295,6 +296,174 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+const createReview = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { rating, comment } = req.body;
+    const reviewerId = req.decodedToken._id;
+
+    const user = await UserSchema.findOne({ _id: userId, isDeleted: false });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check if the user is a caretaker
+    if (user.role !== "CARETAKER") {
+      return res.status(422).json({
+        message: "You can only review caretakers.",
+      });
+    }
+
+    // Check if the user has already reviewed this user
+    const existingReview = user.reviews.find(
+      (review) => review.user.toString() === reviewerId && !review.isDeleted
+    );
+
+    if (existingReview) {
+      return res
+        .status(422)
+        .json({ message: "You have already reviewed this user." });
+    }
+
+    const review = {
+      user: reviewerId,
+      rating,
+      comment,
+    };
+
+    user.reviews.push(review);
+    await (await user.save()).populate("reviews.user", "firstName lastName email");
+
+    res.status(201).json({
+      message: "Review added successfully.",
+      data: user.reviews[user.reviews.length - 1],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const getReviews = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const reviewerId = req.decodedToken._id;
+
+    const totalReviews = await UserSchema.countDocuments({
+      "reviews.user": reviewerId,
+    });
+    const reviews = await UserSchema.find(
+      { "reviews.user": reviewerId },
+      { reviews: { $elemMatch: { user: reviewerId, isDeleted: false } } }
+    )
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const pagination = {
+      totalPages: Math.ceil(totalReviews / limit),
+      currentPage: page,
+      totalReviews,
+      currentReviews: reviews.length,
+      limit,
+    };
+
+    res.status(200).json({
+      pagination,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const updateReview = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { rating, comment } = req.body;
+    const reviewerId = req.decodedToken._id;
+
+    const user = await UserSchema.findOne({
+      _id: userId,
+      isDeleted: false,
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Find the review in the user's reviews array
+    const reviewIndex = user.reviews.findIndex(
+      (review) => review.user.toString() === reviewerId && !review.isDeleted
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: "Review not found." });
+    }
+
+    // Update the review
+    user.reviews[reviewIndex].rating = rating;
+    user.reviews[reviewIndex].comment = comment;
+
+    await (await user.save()).populate("reviews.user", "firstName lastName email");
+
+    res.status(200).json({
+      message: "Review updated successfully.",
+      data: user.reviews[reviewIndex],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
+const deleteReview = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const reviewerId = req.decodedToken._id;
+
+    const user = await UserSchema.findOne({
+      _id: userId,
+      isDeleted: false,
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Find the review in the user's reviews array
+    const reviewIndex = user.reviews.findIndex(
+      (review) => review.user.toString() === reviewerId && !review.isDeleted
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: "Review not found." });
+    }
+
+    // Remove the review
+    user.reviews.splice(reviewIndex, 1);
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Review deleted successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "OOPS! Sorry, something went wrong.",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -305,4 +474,8 @@ module.exports = {
   getCaretakerProfile,
   userVerified,
   updateProfile,
+  createReview,
+  getReviews,
+  updateReview,
+  deleteReview,
 };
