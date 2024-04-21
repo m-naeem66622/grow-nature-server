@@ -323,6 +323,16 @@ const makeDeal = async (req, res, next) => {
       );
     }
 
+    // Check if user is the owner of the plant swap
+    if (plantSwap.data.user._id.toString() === swapPartner) {
+      throwError(
+        "FAILED",
+        422,
+        "Cannot make a deal with your own plant swap",
+        "0x000E84"
+      );
+    }
+
     // Check if plant swap is already completed
     if (plantSwap.data.status === "COMPLETED") {
       throwError(
@@ -335,7 +345,7 @@ const makeDeal = async (req, res, next) => {
 
     const updatedPlantSwap = await PlantSwap.updatePlantSwap(
       filter,
-      { status: "COMPLETED", swapPartner},
+      { status: "COMPLETED", swapPartner },
       {},
       projection
     );
