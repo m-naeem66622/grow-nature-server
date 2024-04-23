@@ -1,17 +1,47 @@
+const axios = require("axios");
 const Order = require("../models/order.model");
 const { throwError } = require("../helpers/error");
 const OrderSchema = require("../schema/order.schema");
+const generateMongoId = require("../helpers/generateMongoId");
 
 const createOrder = async (req, res) => {
   try {
     const buyer = req.decodedToken._id;
+    const totalPrice = req.body.totalPrice;
 
-    const newOrder = new OrderSchema({ ...req.body, buyer });
+    // Get Access Token from PayFast
+    const orderId = generateMongoId();
+    let payfastAcessToken = null;
+    try {
+      const response = await axios.post(
+        `https://ipguat.apps.net.pk/Ecommerce/api/Transaction/GetAccessToken?MERCHANT_ID=${process.env.PAYFAST_MERCHANT_ID}&SECURED_KEY=${process.env.PAYFAST_SECURED_KEY}&BASKET_ID=${orderId}&TXNAMT=${totalPrice}`
+      );
+
+      if (response.data.ACCESS_TOKEN) {
+        payfastAcessToken = response.data.ACCESS_TOKEN;
+      }
+    } catch (error) {
+      console.error("Error getting PayFast Access Token:", error);
+      return res
+        .status(422)
+        .json({ message: "Error getting PayFast Access Token" });
+    }
+
+    const newOrder = new OrderSchema({ ...req.body, _id: orderId, buyer });
 
     const savedOrder = await newOrder.save();
     res.status(201).json({
       message: "Order placed successfully",
       data: savedOrder,
+      formParams: {
+        MERCHANT_ID: process.env.PAYFAST_MERCHANT_ID,
+        MERCHANT_NAME: process.env.PAYFAST_MERCHANT_NAME,
+        TOKEN: payfastAcessToken,
+        PROCCODE: "00",
+        TXNAMT: totalPrice,
+        CURRENCY_CODE: "PKR",
+        BASKET_ID: orderId,
+      },
     });
   } catch (error) {
     console.error("Error creating order:", error);

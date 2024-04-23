@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
   {
+    transactionId: { type: String, default: null },
     buyer: { type: mongoose.ObjectId, ref: "User" },
     orderItems: [
       {
@@ -17,6 +18,8 @@ const orderSchema = new mongoose.Schema(
     taxPrice: { type: Number, required: true, default: 0.0 },
     shippingPrice: { type: Number, required: true, default: 0.0 },
     totalPrice: { type: Number, required: true, default: 0.0 },
+    paymentMethod: { type: String, enum: ["COD", "ONLINE"], default: "COD" },
+    paid: { type: Boolean, required: true, default: false },
     status: {
       type: String,
       enum: ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
@@ -24,9 +27,7 @@ const orderSchema = new mongoose.Schema(
       default: "PENDING",
     },
   },
-  {
-    timestamps: { createdAt: "placedAt" },
-  }
+  { timestamps: { createdAt: "placedAt" } }
 );
 
 const Order = mongoose.model("Order", orderSchema);
