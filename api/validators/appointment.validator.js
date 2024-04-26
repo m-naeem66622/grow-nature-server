@@ -4,6 +4,7 @@ const createSchema = Joi.object({
   start: Joi.date().min("now").required(),
   end: Joi.date().greater(Joi.ref("start")).required(),
   caretaker: Joi.string().hex().length(24).required(),
+  price: Joi.number().min(1).required(),
   purpose: Joi.string().required(),
 });
 

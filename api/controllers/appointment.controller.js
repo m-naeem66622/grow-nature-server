@@ -1,6 +1,8 @@
+const axios = require("axios");
 const Appointment = require("../models/appointment.model");
 const { throwError } = require("../helpers/error");
 const { USER_COMMON_PROJECTION } = require("../../config/config");
+const generateMongoId = require("../helpers/generateMongoId");
 
 /**
  * @desc    Create a new appointment
@@ -10,7 +12,7 @@ const { USER_COMMON_PROJECTION } = require("../../config/config");
 const createAppointment = async (req, res, next) => {
   try {
     const customerId = req.decodedToken._id;
-    const { caretaker, start, end } = req.body;
+    const { caretaker, start, end, price } = req.body;
 
     // Check appointment availability
     const isAvailable = await Appointment.checkAvailability(
@@ -28,7 +30,28 @@ const createAppointment = async (req, res, next) => {
       );
     }
 
+    // Get Access Token from PayFast
+    const appointmentId = generateMongoId();
+    let payfastAcessToken = null;
+    try {
+      const response = await axios.post(
+        `https://ipguat.apps.net.pk/Ecommerce/api/Transaction/GetAccessToken?MERCHANT_ID=${process.env.PAYFAST_MERCHANT_ID}&SECURED_KEY=${process.env.PAYFAST_SECURED_KEY}&BASKET_ID=${appointmentId}&TXNAMT=${price}`
+      );
+
+      if (response.data.ACCESS_TOKEN) {
+        payfastAcessToken = response.data.ACCESS_TOKEN;
+      }
+    } catch (error) {
+      throwError(
+        "FAILED",
+        422,
+        "Error getting PayFast Access Token",
+        "0x000D83"
+      );
+    }
+
     req.body.customer = customerId;
+    req.body._id = appointmentId;
     const newAppointment = await Appointment.createAppointment(req.body);
 
     if (newAppointment.status === "FAILED") {
@@ -47,6 +70,15 @@ const createAppointment = async (req, res, next) => {
       status: "SUCCESS",
       message: "Appointment created successfully",
       data: newAppointment.data,
+      formParams: {
+        MERCHANT_ID: process.env.PAYFAST_MERCHANT_ID,
+        MERCHANT_NAME: process.env.PAYFAST_MERCHANT_NAME,
+        TOKEN: payfastAcessToken,
+        PROCCODE: "00",
+        TXNAMT: price,
+        CURRENCY_CODE: "PKR",
+        BASKET_ID: appointmentId,
+      }
     });
   } catch (error) {
     next(error);
@@ -186,7 +218,7 @@ const updateAppointmentById = async (req, res, next) => {
         "FAILED",
         422,
         "Appointment is already approved, cannot be update",
-        "0x000D081"
+        "0x000D81"
       );
     }
 
@@ -263,7 +295,7 @@ const deleteAppointmentById = async (req, res, next) => {
         "FAILED",
         422,
         "Appointment is already approved, cannot be deleted",
-        "0x000D082"
+        "0x000D82"
       );
     }
 
