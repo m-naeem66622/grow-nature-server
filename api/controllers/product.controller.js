@@ -124,6 +124,9 @@ const updateProductById = async (req, res) => {
 
     deleteImages(imagesToDelete);
 
+    !req.body.potSize ? (req.body.potSize = null) : null;
+    !req.body.potType ? (req.body.potType = null) : null;
+
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       { $set: req.body },
